@@ -25,9 +25,8 @@ export function LoginForm() {
       callbackUrl,
     });
 
-    setCarregando(false);
-
     if (!resultado || resultado.error) {
+      setCarregando(false);
       setErro('Documento/e-mail ou senha invalidos.');
       return;
     }
@@ -62,8 +61,12 @@ export function LoginForm() {
           required
         />
       </div>
-      <button className="button primary" type="submit" disabled={carregando}>
-        {carregando ? 'Entrando...' : 'Entrar'}
+      <button 
+        className={`button primary ${carregando ? 'loading' : ''}`} 
+        type="submit" 
+        disabled={carregando}
+      >
+        {carregando ? <span className="spinner" aria-hidden="true" /> : 'Entrar'}
       </button>
     </form>
   );

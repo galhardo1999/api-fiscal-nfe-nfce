@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { SidebarReferencia } from './sidebar-referencia';
+import { PlaygroundReferencia } from './playground-referencia';
 
 export interface CampoReferencia {
   nome: string;
@@ -45,6 +47,9 @@ export interface ReferenciaApi {
   respostas: RespostaReferencia[];
   estados: string[];
   boasPraticas: CartaoReferencia[];
+  exemploJson?: string;
+  retornoJson?: string;
+  tituloRetorno?: string;
 }
 
 const camposAutenticacaoJson = [
@@ -194,7 +199,7 @@ const endpointsDocumento = [
   },
 ] as const satisfies readonly EndpointReferencia[];
 
-const referencias = {
+const referencias: Record<string, ReferenciaApi> = {
   'visao-geral': {
     slug: 'visao-geral',
     titulo: 'Visao geral da API',
@@ -1038,21 +1043,419 @@ resposta.raise_for_status()`,
       { titulo: 'Testes', descricao: 'Teste com homologacao antes de producao.' },
     ],
   },
-} satisfies Record<string, ReferenciaApi>;
+};
 
-export type SlugReferencia = keyof typeof referencias;
+export type SlugReferencia = string;
 
-export const slugsReferencia = Object.keys(referencias) as SlugReferencia[];
+export const detalhesEndpoints: Record<string, {
+  titulo: string;
+  subtitulo: string;
+  metodo: 'POST' | 'GET' | 'DEL';
+  rota: string;
+  descricaoMeta: string;
+  campos?: CampoReferencia[];
+  codigos?: CodigoReferencia[];
+  respostas?: RespostaReferencia[];
+  checklist?: string[];
+  fluxo?: CartaoReferencia[];
+  boasPraticas?: CartaoReferencia[];
+  exemploJson?: string;
+  retornoJson?: string;
+  tituloRetorno?: string;
+}> = {
+  // NFCe Endpoints
+  'emitir-nfce': {
+    titulo: 'Emitir NFC-e modelo 65',
+    subtitulo: 'Envia dados do cupom fiscal para homologação ou emissão em produção.',
+    metodo: 'POST',
+    rota: '/api/v1/nfce',
+    descricaoMeta: 'Documentação do endpoint de emissão assíncrona de NFC-e modelo 65.'
+  },
+  'consultar-nfce': {
+    titulo: 'Consultar NFC-e',
+    subtitulo: 'Consulte o status operacional, chave de acesso e protocolo de uma NFC-e emitida.',
+    metodo: 'GET',
+    rota: '/api/v1/documentos/{id}',
+    descricaoMeta: 'Como consultar o status e os dados de uma NFC-e autorizada ou rejeitada.'
+  },
+  'cancelar-nfce': {
+    titulo: 'Cancelar NFC-e',
+    subtitulo: 'Solicita o cancelamento de uma NFC-e autorizada dentro do prazo legal por UF.',
+    metodo: 'DEL',
+    rota: '/api/v1/documentos/{id}/cancelamento',
+    descricaoMeta: 'Instruções para realizar o cancelamento de cupons fiscais NFC-e.'
+  },
+  'enviar-nfce-email': {
+    titulo: 'Enviar NFC-e por E-mail',
+    subtitulo: 'Envia o XML assinado e o PDF do DANFE para o e-mail do consumidor final.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/enviar-email',
+    descricaoMeta: 'Envio automático de cupom fiscal NFC-e por e-mail.'
+  },
+  'inutilizar-numeracao-nfce': {
+    titulo: 'Inutilizar Numeração NFC-e',
+    subtitulo: 'Inutiliza faixas de numeração que foram puladas na sequência da NFC-e.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/inutilizacao',
+    descricaoMeta: 'Como inutilizar numeração de cupons fiscais modelo 65.'
+  },
+  'consultar-inutilizacoes-nfce': {
+    titulo: 'Consultar Inutilizações NFC-e',
+    subtitulo: 'Consulta o status de homologação de faixas de numeração de NFC-e inutilizadas.',
+    metodo: 'GET',
+    rota: '/api/v1/documentos/inutilizacao/{id}',
+    descricaoMeta: 'Listagem e consulta de numerações NFC-e inutilizadas.'
+  },
+  'registrar-econf-nfce': {
+    titulo: 'Registrar Conciliação Financeira (ECONF) NFC-e',
+    subtitulo: 'Vincula transações financeiras (cartão/PIX) a uma NFC-e autorizada.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/econf',
+    descricaoMeta: 'Registro de conciliação de meio eletrônico de pagamento ECONF para NFC-e.'
+  },
+  'consultar-econf-nfce': {
+    titulo: 'Consultar ECONF NFC-e',
+    subtitulo: 'Consulta eventos de conciliação financeira vinculados a cupons fiscais NFC-e.',
+    metodo: 'GET',
+    rota: '/api/v1/documentos/{id}/econf',
+    descricaoMeta: 'Verificar conciliações de pagamento vinculadas a cupons fiscais.'
+  },
 
-export const paginasReferencia = slugsReferencia.map((slug) => ({
+  // NFe Endpoints
+  'emitir-nfe': {
+    titulo: 'Emitir NF-e modelo 55',
+    subtitulo: 'Recebe o payload da NF-e e inicia o envio para autorização na SEFAZ.',
+    metodo: 'POST',
+    rota: '/api/v1/nfe',
+    descricaoMeta: 'Tudo sobre como emitir NF-e via API. Guia para desenvolvedores com exemplos de requisição, autorização e protocolos.',
+    campos: [
+      { nome: 'ref', tipo: 'string', obrigatorio: 'Sim (Query)', descricao: 'Referência única da NFe no seu sistema (ex: ID da venda ou pedido).' },
+      { nome: 'natureza_operacao', tipo: 'string', obrigatorio: 'Sim (Body)', descricao: 'Descrição da natureza da operação (ex: Venda de mercadorias, Remessa de bens).' },
+      { nome: 'data_emissao', tipo: 'date-time', obrigatorio: 'Sim (Body)', descricao: 'Data de emissão da NF-e em formato ISO 8601 com fuso horário.' },
+      { nome: 'data_entrada_saida', tipo: 'date-time', obrigatorio: 'Não (Body)', descricao: 'Data de entrada ou saída real da mercadoria.' },
+      { nome: 'tipo_documento', tipo: 'integer (0 ou 1)', obrigatorio: 'Sim (Body)', descricao: '0: Nota Fiscal de Entrada; 1: Nota Fiscal de Saída.' },
+      { nome: 'local_destino', tipo: 'integer (1 a 3)', obrigatorio: 'Não (Body)', descricao: '1: Operação interna (dentro da UF); 2: Operação interestadual; 3: Operação com exterior.' },
+      { nome: 'finalidade_emissao', tipo: 'integer (1 a 4)', obrigatorio: 'Sim (Body)', descricao: '1: Normal; 2: Complementar; 3: Nota de ajuste; 4: Devolução.' },
+      { nome: 'consumidor_final', tipo: 'integer (0 ou 1)', obrigatorio: 'Não (Body)', descricao: '0: Não; 1: Consumidor final.' },
+      { nome: 'presenca_comprador', tipo: 'integer (0 a 9)', obrigatorio: 'Não (Body)', descricao: 'Indicador de presença do comprador no estabelecimento comercial.' },
+      { nome: 'cnpj_emitente', tipo: 'string', obrigatorio: 'Sim (Body)', descricao: 'CNPJ da empresa emitente responsável cadastrada.' }
+    ],
+    codigos: [
+      {
+        titulo: 'Exemplo de Emissão (JSON)',
+        codigo: `{
+  "cnpj_emitente": "12345678000123",
+  "natureza_operacao": "Venda de mercadoria",
+  "data_emissao": "2024-01-15T12:00:00-03:00",
+  "tipo_documento": 1,
+  "finalidade_emissao": 1,
+  "itens": [
+    {
+      "codigo": "PROD001",
+      "descricao": "Mouse Óptico Sem Fio USB",
+      "ncm": "84716053",
+      "cfop": "5102",
+      "unidade": "UN",
+      "quantidade": 2,
+      "valor_unitario": 45.90,
+      "valor_total": 91.80
+    }
+  ]
+}`
+      },
+      {
+        titulo: 'Retorno Assíncrono (202 Accepted)',
+        codigo: `{
+  "documentoId": "doc_nfe_20260525_xyz",
+  "modelo": "NFE",
+  "ambiente": "HOMOLOGACAO",
+  "status": "RECEBIDA",
+  "requestId": "req_nfe_987654321",
+  "mensagem": "Documento fiscal recebido e enfileirado com sucesso para processamento."
+}`
+      }
+    ],
+    respostas: [
+      { codigo: '202', titulo: 'Processamento Aceito', descricao: 'A nota foi gravada e enfileirada para transmissão em segundo plano para a SEFAZ.' },
+      { codigo: '400', titulo: 'Payload Inválido', descricao: 'Erros de schema JSON, campos obrigatórios ausentes ou tipos de dados incorretos.' },
+      { codigo: '401', titulo: 'Não Autorizado', descricao: 'Bearer Token ou chave de API inválida, ausente ou expirada.' },
+      { codigo: '409', titulo: 'Conflito / Duplicidade', descricao: 'A chave de idempotência (idempotency-key) já foi utilizada para outra emissão.' }
+    ],
+    checklist: [
+      'Gere e passe o parâmetro "ref" como query param para rastreabilidade única no seu ERP.',
+      'Sempre utilize uma idempotency-key exclusiva no header para prevenir notas duplicadas.',
+      'Utilize o ambiente de HOMOLOGAÇÃO com dados de teste antes de enviar notas operacionais reais.',
+      'Os dados do destinatário e dos itens devem possuir NCM e CFOP válidos cadastrados no portal SEFAZ.'
+    ],
+    fluxo: [
+      { titulo: '1. Enviar Payload', descricao: 'Seu sistema faz o POST enviando o JSON dos produtos e destinatário.' },
+      { titulo: '2. Receber Protocolo', descricao: 'A API retorna um status 202 com o ID único da nota.' },
+      { titulo: '3. Enfileiramento', descricao: 'A nota fiscal é assinada digitalmente com o certificado A1 da empresa.' },
+      { titulo: '4. Resposta SEFAZ', descricao: 'A SEFAZ analisa e devolve o status, que é enviado ao seu webhook.' }
+    ],
+    boasPraticas: [
+      { titulo: 'Fila & Webhook', descricao: 'Evite fazer polling excessivo. Confie no webhook de retorno para atualizar o status em tempo real.' },
+      { titulo: 'CFOP e Tributação', descricao: 'Certifique-se de preencher a tributação correta (ICMS, PIS, COFINS) nos itens da nota para evitar rejeições.' }
+    ],
+    exemploJson: `{
+  "cnpj_emitente": "12345678000123",
+  "natureza_operacao": "Venda de mercadoria",
+  "data_emissao": "2024-01-15T12:00:00-03:00",
+  "tipo_documento": 1,
+  "finalidade_emissao": 1,
+  "itens": [
+    {
+      "codigo": "PROD001",
+      "descricao": "Mouse Óptico Sem Fio USB",
+      "ncm": "84716053",
+      "cfop": "5102",
+      "unidade": "UN",
+      "quantidade": 2,
+      "valor_unitario": 45.90,
+      "valor_total": 91.80
+    }
+  ]
+}`,
+    retornoJson: `{
+  "cnpj_emitente": "12345678000123",
+  "ref": "referencia_000899_nfe",
+  "status": "autorizado",
+  "status_sefaz": "100",
+  "mensagem_sefaz": "Autorizado o uso da NF-e",
+  "chave_nfe": "NFe4119061234567800012355001000000022192309",
+  "numero": "22",
+  "serie": "1",
+  "caminho_xml_nota_fiscal": "/arquivos/12345678000123/201906/NFe41190612345678000123550010000000221923094.xml",
+  "caminho_danfe": "/arquivos/12345678000123/201906/DANFEs/NFe41190612345678000123550010000000221923094.pdf"
+}`,
+    tituloRetorno: '201 - NFe Autorizada'
+  },
+  'consultar-nfe': {
+    titulo: 'Consultar NF-e',
+    subtitulo: 'Consulte detalhes, XML, DANFE e eventos associados a uma NF-e por ID.',
+    metodo: 'GET',
+    rota: '/api/v1/documentos/{id}',
+    descricaoMeta: 'Como consultar o status de autorização, rejeições ou eventos de uma NF-e.'
+  },
+  'cancelar-nfe': {
+    titulo: 'Cancelar NF-e',
+    subtitulo: 'Solicita o cancelamento de uma NF-e autorizada fornecendo justificativa legal.',
+    metodo: 'DEL',
+    rota: '/api/v1/documentos/{id}/cancelamento',
+    descricaoMeta: 'Processo e prazo de cancelamento de notas fiscais eletrônicas.'
+  },
+  'carta-correcao-nfe': {
+    titulo: 'Emitir Carta de Correção (CC-e) NF-e',
+    subtitulo: 'Gera uma carta de correção para corrigir erros permitidos de uma NF-e.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/carta-correcao',
+    descricaoMeta: 'Como emitir uma Carta de Correção Eletrônica (CC-e) para NF-e modelo 55.'
+  },
+  'registrar-ator-interessado-nfe': {
+    titulo: 'Registrar Ator Interessado na NF-e',
+    subtitulo: 'Autoriza CNPJ ou CPF de terceiros (ex: transportadora) a baixar o XML da NF-e.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/atores',
+    descricaoMeta: 'Vincular transportadoras ou contabilidades para download do XML fiscal.'
+  },
+  'registrar-insucesso-entrega-nfe': {
+    titulo: 'Registrar Insucesso na Entrega da NF-e',
+    subtitulo: 'Registra o insucesso na tentativa de entrega de mercadorias associadas à NF-e.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/insucesso-entrega',
+    descricaoMeta: 'Registro de evento de insucesso de entrega física de notas fiscais.'
+  },
+  'cancelar-insucesso-entrega-nfe': {
+    titulo: 'Cancelar Insucesso na Entrega da NF-e',
+    subtitulo: 'Cancela um evento de insucesso na entrega registrado anteriormente.',
+    metodo: 'DEL',
+    rota: '/api/v1/documentos/{id}/insucesso-entrega',
+    descricaoMeta: 'Desfazimento de eventos de insucesso na entrega de mercadoria.'
+  },
+  'enviar-nfe-email': {
+    titulo: 'Enviar NF-e por E-mail',
+    subtitulo: 'Garante o envio legal do XML protocolado e DANFE para o cliente destinatário.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/enviar-email',
+    descricaoMeta: 'Envio automático de XML e PDF de nota fiscal eletrônica por e-mail.'
+  },
+  'inutilizar-numeracao-nfe': {
+    titulo: 'Inutilizar Numeração NF-e',
+    subtitulo: 'Inutiliza intervalos de numeração de NF-e não utilizados devido a falhas operacionais.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/inutilizacao',
+    descricaoMeta: 'Como inutilizar numeração de Notas Fiscais Eletrônicas modelo 55.'
+  },
+  'consultar-inutilizacoes-nfe': {
+    titulo: 'Consultar Inutilizações NF-e',
+    subtitulo: 'Consulta homologações de inutilizações de numeração solicitadas.',
+    metodo: 'GET',
+    rota: '/api/v1/documentos/inutilizacao/{id}',
+    descricaoMeta: 'Verificação do status de homologação de inutilizações na SEFAZ.'
+  },
+  'importar-nfe': {
+    titulo: 'Importar NF-e de Terceiros',
+    subtitulo: 'Importa um XML de NF-e emitido por terceiros para registro na base de dados.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/importar',
+    descricaoMeta: 'Importação de notas de entrada ou notas de terceiros via XML.'
+  },
+  'pre-visualizacao-danfe': {
+    titulo: 'Pré-visualização de DANFe',
+    subtitulo: 'Gera um PDF temporário para pré-visualizar o DANFE antes da transmissão oficial.',
+    metodo: 'POST',
+    rota: '/api/v1/nfe/pre-visualizar',
+    descricaoMeta: 'Geração de PDF do DANFE em formato sandbox para conferência tributária.'
+  },
+  'registrar-econf-nfe': {
+    titulo: 'Registrar Conciliação Financeira (ECONF) NF-e',
+    subtitulo: 'Vincula pagamentos em meio eletrônico (cartões, Pix) a uma NF-e.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/econf',
+    descricaoMeta: 'Evento ECONF para conciliação financeira de notas modelo 55.'
+  },
+  'consultar-econf-nfe': {
+    titulo: 'Consultar ECONF NF-e',
+    subtitulo: 'Consulta eventos de conciliação financeira vinculados à NF-e.',
+    metodo: 'GET',
+    rota: '/api/v1/documentos/{id}/econf',
+    descricaoMeta: 'Consulta de conciliações eletrônicas homologadas na NF-e.'
+  },
+  'cancelar-econf-nfe': {
+    titulo: 'Cancelar ECONF NF-e',
+    subtitulo: 'Solicita o cancelamento de um evento de conciliação financeira ativo.',
+    metodo: 'DEL',
+    rota: '/api/v1/documentos/{id}/econf/cancelamento',
+    descricaoMeta: 'Desfazimento de conciliação de pagamento eletrônico na NF-e.'
+  },
+  'emitir-evento-nfe': {
+    titulo: 'Emitir Evento Genérico na NF-e',
+    subtitulo: 'Gera e transmite eventos diversos autorizados pela SEFAZ.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/eventos',
+    descricaoMeta: 'Registro de eventos fiscais gerais sob o CNPJ emitente.'
+  },
+  'cancelar-evento-nfe': {
+    titulo: 'Cancelar Evento na NF-e',
+    subtitulo: 'Solicita o cancelamento de um evento genérico registrado.',
+    metodo: 'DEL',
+    rota: '/api/v1/documentos/{id}/eventos/{eventoId}',
+    descricaoMeta: 'Procedimento para revogação de eventos fiscais.'
+  },
+  'solicitar-reenvio-notificacao-nfe': {
+    titulo: 'Solicitar Reenvio de Notificação de NF-e',
+    subtitulo: 'Dispara novamente as notificações de webhooks agendadas para o documento.',
+    metodo: 'POST',
+    rota: '/api/v1/documentos/{id}/notificar',
+    descricaoMeta: 'Reenvio de webhooks e alertas de processamento de notas.'
+  }
+};
+
+export const slugsReferencia = [
+  ...Object.keys(referencias),
+  ...Object.keys(detalhesEndpoints)
+] as string[];
+
+export const paginasReferencia = Object.keys(referencias).map((slug) => ({
   slug,
-  titulo: referencias[slug].titulo,
+  titulo: referencias[slug as keyof typeof referencias].titulo,
   href: `/docs/${slug}`,
 }));
 
+// (Removido e movido para sidebar-referencia.tsx)
+
+export function gerarReferenciaDinamica(slug: string): ReferenciaApi | null {
+  const detalhes = detalhesEndpoints[slug];
+  if (!detalhes) return null;
+
+  const ehNfce = slug.endsWith('-nfce');
+  const modelo = ehNfce ? '65' : '55';
+
+  const defaultExemplo = detalhes.metodo === 'POST' ? JSON.stringify({
+    empresaId: "empresa_123",
+    justificativa: "Motivo fiscal da solicitação ou evento"
+  }, null, 2) : undefined;
+
+  const defaultRetorno = JSON.stringify({
+    status: "processado",
+    mensagem: "Operação processada ou recebida com sucesso.",
+    requestId: "req_fiscal_987654321"
+  }, null, 2);
+
+  return {
+    slug,
+    titulo: detalhes.titulo,
+    subtitulo: detalhes.subtitulo,
+    descricaoMeta: detalhes.descricaoMeta,
+    metodoPrincipal: detalhes.metodo,
+    rotaPrincipal: detalhes.rota,
+    destaques: [
+      detalhes.metodo,
+      `Modelo ${modelo}`,
+      'Retorno JSON'
+    ],
+    fluxo: detalhes.fluxo || [
+      { titulo: '1. Enviar Request', descricao: `Seu sistema dispara o request ${detalhes.metodo} para a rota.` },
+      { titulo: '2. Validar Token', descricao: 'A API valida o Bearer Token e identifica a empresa.' },
+      { titulo: '3. Processar SEFAZ', descricao: 'As ações são transmitidas e assinadas em background.' },
+      { titulo: '4. Receber Callback', descricao: 'O status final é disparado via Webhook cadastrado.' }
+    ],
+    checklist: detalhes.checklist || [
+      `Garanta que a empresa emitente correspondente está ativa no ambiente.`,
+      `Confira se o certificado digital A1 está no prazo de validade.`,
+      `Trate retornos 202 (Aceito) de processamento assíncrono.`,
+      `Guarde o requestId retornado para suporte e auditoria.`
+    ],
+    endpoints: [
+      { metodo: detalhes.metodo, rota: detalhes.rota, descricao: detalhes.subtitulo }
+    ],
+    campos: detalhes.campos || [
+      { nome: 'empresaId', tipo: 'string', obrigatorio: 'Sim', descricao: 'ID da empresa emitente cadastrada na plataforma.' },
+      { nome: 'justificativa', tipo: 'string', obrigatorio: detalhes.metodo === 'DEL' ? 'Sim' : 'Não', descricao: 'Texto descritivo explicando a motivação do evento.' }
+    ],
+    codigos: detalhes.codigos || [
+      {
+        titulo: 'Exemplo de cURL',
+        codigo: `curl -X ${detalhes.metodo} "$BASE_URL${detalhes.rota}" \\
+  -H "authorization: Bearer $API_TOKEN" \\
+  -H "content-type: application/json"`
+      }
+    ],
+    respostas: detalhes.respostas || [
+      { codigo: '200 | 202', titulo: 'Sucesso', descricao: 'Ação registrada ou processada com sucesso.' },
+      { codigo: '400', titulo: 'Erro de validação', descricao: 'Parâmetros inválidos ou campos obrigatórios ausentes.' },
+      { codigo: '401', titulo: 'Não autorizado', descricao: 'Token inválido ou sem escopo adequado.' }
+    ],
+    estados: ['RECEBIDA', 'EM_PROCESSAMENTO', 'AUTORIZADO', 'FALHA_NA_SEFAZ'],
+    boasPraticas: detalhes.boasPraticas || [
+      { titulo: 'Idempotência', descricao: 'Sempre fornece uma idempotency-key para evitar envios duplicados.' },
+      { titulo: 'Processamento', descricao: 'Aguarde o webhook de retorno e evite fazer polling excessivo.' }
+    ],
+    exemploJson: detalhes.exemploJson || defaultExemplo,
+    retornoJson: detalhes.retornoJson || defaultRetorno,
+    tituloRetorno: detalhes.tituloRetorno || (detalhes.metodo === 'POST' ? '202 - Accepted' : '200 - OK')
+  };
+}
+
 export function obterReferencia(slug: string): ReferenciaApi | null {
   if (Object.prototype.hasOwnProperty.call(referencias, slug)) {
-    return referencias[slug as SlugReferencia];
+    const ref = referencias[slug as keyof typeof referencias];
+    if (!ref.retornoJson) {
+      ref.retornoJson = JSON.stringify({
+        status: "sucesso",
+        mensagem: "Operação executada com sucesso.",
+        requestId: "req_static_docs_999"
+      }, null, 2);
+    }
+    if (!ref.tituloRetorno) {
+      ref.tituloRetorno = "200 - OK";
+    }
+    return ref;
+  }
+
+  const refDinamica = gerarReferenciaDinamica(slug);
+  if (refDinamica) {
+    return refDinamica;
   }
 
   return null;
@@ -1170,42 +1573,15 @@ export function ReferenciaApiVisual({ pagina }: { pagina: ReferenciaApi }) {
     <div className="pagina-referencia-api">
       <CabecalhoDocs />
 
-      <section className="hero-referencia">
-        <div>
-          <span className="eyebrow-doc">Referencia da API</span>
-          <h1>{pagina.titulo}</h1>
-          <p>{pagina.subtitulo}</p>
-        </div>
-        <div className="cartao-endpoint">
-          <div className="linha-endpoint">
-            <DistintivoMetodo metodo={pagina.metodoPrincipal} />
-            <code>{pagina.rotaPrincipal}</code>
-          </div>
-          {pagina.destaques.map((destaque) => (
-            <span key={destaque}>{destaque}</span>
-          ))}
-        </div>
-      </section>
-
       <div className="layout-referencia">
-        <aside className="sumario-referencia" aria-label="Navegacao da referencia">
-          <strong>Referencias</strong>
-          {paginasReferencia.map((item) => (
-            <Link className={item.slug === pagina.slug ? 'ativo' : ''} href={item.href} key={item.slug}>
-              {item.titulo}
-            </Link>
-          ))}
-          <strong>Nesta pagina</strong>
-          <a href="#visao-geral">Visao geral</a>
-          <a href="#antes-de-usar">Antes de usar</a>
-          <a href="#endpoints">Endpoints</a>
-          <a href="#campos">Campos</a>
-          <a href="#exemplos">Exemplos</a>
-          <a href="#respostas">Respostas</a>
-          <a href="#boas-praticas">Boas praticas</a>
-        </aside>
+        <SidebarReferencia activeSlug={pagina.slug} />
 
         <main className="conteudo-referencia">
+          <div className="topo-conteudo-referencia" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '8px' }}>
+            <span className="eyebrow-doc" style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Referência da API</span>
+            <h1 style={{ fontSize: '32px', fontWeight: '800', margin: '8px 0 12px', color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: '1.1' }}>{pagina.titulo}</h1>
+            <p style={{ fontSize: '15px', color: 'var(--muted)', lineHeight: '1.6', margin: '0 0 16px', maxWidth: '720px' }}>{pagina.subtitulo}</p>
+          </div>
           <section id="visao-geral" className="secao-referencia">
             <div className="titulo-secao-referencia">
               <span>01</span>
@@ -1323,6 +1699,14 @@ export function ReferenciaApiVisual({ pagina }: { pagina: ReferenciaApi }) {
             </div>
           </section>
         </main>
+
+        <PlaygroundReferencia
+          metodo={pagina.metodoPrincipal as any}
+          rota={pagina.rotaPrincipal}
+          exemploJson={pagina.exemploJson}
+          retornoJson={pagina.retornoJson}
+          tituloRetorno={pagina.tituloRetorno}
+        />
       </div>
     </div>
   );
