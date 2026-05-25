@@ -1,0 +1,583 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String      @id @default(cuid())
+  document       String?     @unique
+  name           String
+  email          String?     @unique
+  password       String
+  active         Boolean     @default(true)
+  clientId       String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  client         Client?     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  empresas       Empresa[]
+  nfes           Nfe[]
+  auditoriasSaas Auditoria[]
+
+  @@map("usuarios")
+}
+
+model Admin {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  password       String
+  role           AdminRole @default(ADMIN)
+  active         Boolean   @default(true)
+  lastAccess     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdClients Client[]  @relation("AdminCreatedClients")
+
+  @@map("administradores")
+}
+
+model Client {
+  id                String             @id @default(cuid())
+  code              String?            @unique
+  companyName       String
+  tradeName         String?
+  document          String             @unique
+  stateRegistry     String?
+  email             String             @unique
+  phone             String?
+  address           String?
+  neighborhood      String?
+  city              String?
+  state             String?
+  zipCode           String?
+  website           String?
+  logoUrl           String?
+  status            ClientStatus       @default(TESTE)
+  trialEndsAt       DateTime?
+  createdById       String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  planId            String?
+  createdBy         Admin              @relation("AdminCreatedClients", fields: [createdById], references: [id])
+  plan              Planos?            @relation(fields: [planId], references: [id])
+  users             User[]
+  chavesApi         ChaveApi[]
+  documentosFiscais DocumentoFiscal[]
+  endpointsWebhook  EndpointWebhook[]
+  entregasWebhook   EntregaWebhook[]
+  usosMensais       UsoMensal[]
+  auditorias        Auditoria[]
+
+  @@map("clientes_sistema")
+}
+
+model Planos {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  price         Decimal       @db.Decimal(10, 2)
+  billingPeriod BillingPeriod
+  trialDays     Int           @default(0)
+  features      String[]
+  menuItems     String[]
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  clients       Client[]
+
+  @@map("planos")
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  FINANCEIRO
+}
+
+enum ClientStatus {
+  ATIVO
+  TESTE
+  BLOQUEADO
+  CANCELADO
+}
+
+enum BillingPeriod {
+  MENSAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+  TRIAL
+}
+
+enum NfeStatus {
+  A_EMITIR
+  EMITIDA
+  CANCELADA
+}
+
+enum AmbienteFiscalApi {
+  HOMOLOGACAO
+  PRODUCAO
+}
+
+enum ModeloDocumentoFiscal {
+  NFE
+  NFCE
+}
+
+enum StatusDocumentoFiscal {
+  RECEBIDA
+  VALIDANDO
+  XML_GERADO
+  ASSINADA
+  ENFILEIRADA
+  ENVIANDO_SEFAZ
+  AUTORIZADA
+  REJEITADA
+  DENEGADA
+  CANCELADA
+  CONTINGENCIA
+  INUTILIZADA
+  ERRO_TECNICO
+}
+
+enum TipoEventoDocumentoFiscal {
+  RECEBIDO
+  VALIDACAO
+  XML_ASSINADO
+  ENVIO_SEFAZ
+  RETORNO_SEFAZ
+  AUTORIZACAO
+  REJEICAO
+  DENEGACAO
+  CANCELAMENTO
+  CARTA_CORRECAO
+  INUTILIZACAO
+  CONTINGENCIA
+  WEBHOOK
+  ERRO_TECNICO
+}
+
+enum StatusWebhookEntrega {
+  PENDENTE
+  ENVIANDO
+  ENTREGUE
+  FALHOU
+  ESGOTADO
+}
+
+enum TipoAuditoria {
+  AUTENTICACAO
+  CRIACAO
+  ATUALIZACAO
+  EMISSAO
+  EVENTO_FISCAL
+  WEBHOOK
+  COBRANCA
+  SEGURANCA
+}
+
+model Empresa {
+  id           String  @id @default(cuid())
+  userId       String
+  cnpj         String
+  nome         String
+  nomeFantasia String?
+  ie           String
+  iest         String?
+  im           String?
+  cnae         String?
+  crt          String  @default("3")
+
+  logradouro   String
+  numero       String
+  complemento  String?
+  bairro       String
+  municipio    String
+  uf           String
+  cep          String
+  telefone     String?
+  email        String?
+  website      String?
+  logoUrl      String?
+  observations String?
+
+  proximoNumeroNfe  Int     @default(1)
+  proximoNumeroNfce Int     @default(1)
+  serieNfe          Int     @default(1)
+  serieNfce         Int     @default(65)
+  ambiente          String  @default("2")
+  csc               String?
+  idCsc             String?
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certificadoDigital CertificadoDigital?
+  nfes               Nfe[]
+  documentosFiscais  DocumentoFiscal[]
+
+  @@unique([cnpj, userId])
+  @@map("empresas")
+}
+
+model CertificadoDigital {
+  id        String   @id @default(cuid())
+  empresaId String   @unique
+  nome      String
+  arquivo   Bytes
+  senha     String
+  validoAte DateTime
+  serie     String?
+  emissor   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("certificados_digitais")
+}
+
+model Nfe {
+  id               String    @id @default(cuid())
+  userId           String
+  empresaId        String
+  chaveAcesso      String    @unique
+  numero           Int
+  serie            Int
+  naturezaOperacao String
+  tipoOperacao     String
+  finalidade       String    @default("1")
+  tipoEmissao      String    @default("1")
+  ambiente         String
+  modelo           String    @default("55")
+  status           NfeStatus @default(A_EMITIR)
+  protocolo        String?
+
+  xmlNfe       String  @db.Text
+  xmlProtocolo String? @db.Text
+
+  destinatarioNome    String
+  destinatarioCnpjCpf String?
+  destinatarioIe      String?
+
+  valorTotal          Decimal  @db.Decimal(15, 2)
+  valorProdutos       Decimal? @db.Decimal(15, 2)
+  valorFrete          Decimal? @db.Decimal(15, 2)
+  valorSeguro         Decimal? @db.Decimal(15, 2)
+  valorDesconto       Decimal? @db.Decimal(15, 2)
+  valorOutrasDespesas Decimal? @db.Decimal(15, 2)
+
+  valorIcms   Decimal? @db.Decimal(15, 2)
+  valorIcmsSt Decimal? @db.Decimal(15, 2)
+  valorIpi    Decimal? @db.Decimal(15, 2)
+  valorPis    Decimal? @db.Decimal(15, 2)
+  valorCofins Decimal? @db.Decimal(15, 2)
+  valorIbs    Decimal? @db.Decimal(15, 2)
+  valorCbs    Decimal? @db.Decimal(15, 2)
+
+  dataEmissao      DateTime
+  dataEntradaSaida DateTime?
+  dataCancelamento DateTime?
+
+  informacoesAdicionais String? @db.Text
+  motivoCancelamento    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  empresa             Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  itens               NfeItem[]
+  eventos             NfeEvento[]
+  chavesReferenciadas NfeReferenciada[]
+  documentoFiscal     DocumentoFiscal?
+
+  @@unique([numero, serie, empresaId])
+  @@map("nfes")
+}
+
+model NfeReferenciada {
+  id        String   @id @default(cuid())
+  nfeId     String
+  chaveRef  String   @db.VarChar(44)
+  createdAt DateTime @default(now())
+
+  nfe Nfe @relation(fields: [nfeId], references: [id], onDelete: Cascade)
+
+  @@map("nfe_referenciadas")
+}
+
+model NfeItem {
+  id            String  @id @default(cuid())
+  nfeId         String
+  numeroItem    Int
+  codigo        String
+  descricao     String
+  ncm           String
+  cfop          String
+  unidade       String
+  quantidade    Decimal @db.Decimal(15, 4)
+  valorUnitario Decimal @db.Decimal(15, 4)
+  valorTotal    Decimal @db.Decimal(15, 2)
+
+  icmsOrigem   String
+  icmsCst      String
+  icmsAliquota Decimal? @db.Decimal(5, 2)
+  icmsValor    Decimal? @db.Decimal(15, 2)
+
+  ipiCst      String?
+  ipiAliquota Decimal? @db.Decimal(5, 2)
+  ipiValor    Decimal? @db.Decimal(15, 2)
+
+  pisCst      String?
+  pisAliquota Decimal? @db.Decimal(5, 2)
+  pisValor    Decimal? @db.Decimal(15, 2)
+
+  cofinsCst      String?
+  cofinsAliquota Decimal? @db.Decimal(5, 2)
+  cofinsValor    Decimal? @db.Decimal(15, 2)
+
+  ibsAliquota Decimal? @db.Decimal(5, 2)
+  ibsValor    Decimal? @db.Decimal(15, 2)
+  cbsAliquota Decimal? @db.Decimal(5, 2)
+  cbsValor    Decimal? @db.Decimal(15, 2)
+
+  createdAt DateTime @default(now())
+
+  nfe Nfe @relation(fields: [nfeId], references: [id], onDelete: Cascade)
+
+  @@map("nfe_itens")
+}
+
+model NfeEvento {
+  id            String   @id @default(cuid())
+  nfeId         String
+  tipoEvento    String
+  sequencia     Int
+  protocolo     String?
+  dataEvento    DateTime
+  justificativa String?
+  correcao      String?  @db.Text
+  xmlEvento     String   @db.Text
+  xmlRetorno    String?  @db.Text
+  status        String
+  createdAt     DateTime @default(now())
+
+  nfe Nfe @relation(fields: [nfeId], references: [id], onDelete: Cascade)
+
+  @@map("nfe_eventos")
+}
+
+model ChaveApi {
+  id           String            @id @default(cuid())
+  clientId     String
+  nome         String
+  prefixo      String            @unique
+  hashSegredo  String            @unique
+  ambiente     AmbienteFiscalApi @default(HOMOLOGACAO)
+  escopos      String[]
+  ativa        Boolean           @default(true)
+  ultimoUsoEm  DateTime?
+  expiraEm     DateTime?
+  criadoEm     DateTime          @default(now())
+  atualizadoEm DateTime          @updatedAt
+
+  client            Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  documentosFiscais DocumentoFiscal[]
+  auditorias        Auditoria[]
+
+  @@index([clientId, ativa])
+  @@map("chaves_api")
+}
+
+model DocumentoFiscal {
+  id             String                @id @default(cuid())
+  clientId       String
+  empresaId      String?
+  chaveApiId     String?
+  nfeId          String?               @unique
+  requestId      String                @unique
+  idempotencyKey String?
+  modelo         ModeloDocumentoFiscal
+  ambiente       AmbienteFiscalApi
+  status         StatusDocumentoFiscal @default(RECEBIDA)
+  payload        Json
+  numero         Int?
+  serie          Int?
+  chaveAcesso    String?
+  protocolo      String?
+  cStat          String?
+  motivoSefaz    String?
+  valorTotal     Decimal?              @db.Decimal(15, 2)
+  xmlNfe         String?               @db.Text
+  xmlProtocolo   String?               @db.Text
+  criadoEm       DateTime              @default(now())
+  atualizadoEm   DateTime              @updatedAt
+  processadoEm   DateTime?
+
+  client              Client                        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  empresa             Empresa?                      @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  chaveApi            ChaveApi?                     @relation(fields: [chaveApiId], references: [id], onDelete: SetNull)
+  nfe                 Nfe?                          @relation(fields: [nfeId], references: [id], onDelete: SetNull)
+  itens               DocumentoFiscalItem[]
+  eventos             DocumentoFiscalEvento[]
+  chavesReferenciadas DocumentoFiscalReferenciado[]
+  entregasWebhook     EntregaWebhook[]
+
+  @@unique([clientId, idempotencyKey])
+  @@index([clientId, status])
+  @@index([empresaId, modelo, ambiente])
+  @@index([chaveAcesso])
+  @@map("documentos_fiscais")
+}
+
+model DocumentoFiscalItem {
+  id                String   @id @default(cuid())
+  documentoFiscalId String
+  numeroItem        Int
+  codigo            String
+  descricao         String
+  ncm               String?
+  cfop              String?
+  unidade           String?
+  quantidade        Decimal  @db.Decimal(15, 4)
+  valorUnitario     Decimal  @db.Decimal(15, 4)
+  valorTotal        Decimal  @db.Decimal(15, 2)
+  payloadTributos   Json?
+  criadoEm          DateTime @default(now())
+
+  documentoFiscal DocumentoFiscal @relation(fields: [documentoFiscalId], references: [id], onDelete: Cascade)
+
+  @@unique([documentoFiscalId, numeroItem])
+  @@map("documentos_fiscais_itens")
+}
+
+model DocumentoFiscalReferenciado {
+  id                String   @id @default(cuid())
+  documentoFiscalId String
+  chaveRef          String   @db.VarChar(44)
+  criadoEm          DateTime @default(now())
+
+  documentoFiscal DocumentoFiscal @relation(fields: [documentoFiscalId], references: [id], onDelete: Cascade)
+
+  @@map("documentos_fiscais_referenciados")
+}
+
+model DocumentoFiscalEvento {
+  id                String                    @id @default(cuid())
+  documentoFiscalId String
+  tipo              TipoEventoDocumentoFiscal
+  statusAnterior    StatusDocumentoFiscal?
+  statusNovo        StatusDocumentoFiscal?
+  cStat             String?
+  mensagem          String?
+  payload           Json?
+  xmlEvento         String?                   @db.Text
+  xmlRetorno        String?                   @db.Text
+  criadoEm          DateTime                  @default(now())
+
+  documentoFiscal DocumentoFiscal  @relation(fields: [documentoFiscalId], references: [id], onDelete: Cascade)
+  entregasWebhook EntregaWebhook[]
+
+  @@index([documentoFiscalId, tipo])
+  @@map("documentos_fiscais_eventos")
+}
+
+model EndpointWebhook {
+  id           String   @id @default(cuid())
+  clientId     String
+  url          String
+  segredo      String
+  eventos      String[]
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  client   Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  entregas EntregaWebhook[]
+
+  @@unique([clientId, url])
+  @@index([clientId, ativo])
+  @@map("endpoints_webhook")
+}
+
+model EntregaWebhook {
+  id                      String               @id @default(cuid())
+  clientId                String
+  endpointWebhookId       String?
+  documentoFiscalId       String?
+  documentoFiscalEventoId String?
+  evento                  String
+  payload                 Json
+  status                  StatusWebhookEntrega @default(PENDENTE)
+  tentativas              Int                  @default(0)
+  proximaTentativaEm      DateTime?
+  ultimoStatusHttp        Int?
+  ultimoErro              String?
+  criadoEm                DateTime             @default(now())
+  atualizadoEm            DateTime             @updatedAt
+
+  client                Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  endpointWebhook       EndpointWebhook?       @relation(fields: [endpointWebhookId], references: [id], onDelete: SetNull)
+  documentoFiscal       DocumentoFiscal?       @relation(fields: [documentoFiscalId], references: [id], onDelete: Cascade)
+  documentoFiscalEvento DocumentoFiscalEvento? @relation(fields: [documentoFiscalEventoId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, status])
+  @@index([proximaTentativaEm])
+  @@map("entregas_webhook")
+}
+
+model UsoMensal {
+  id                     String                @id @default(cuid())
+  clientId               String
+  anoMes                 String
+  ambiente               AmbienteFiscalApi
+  modelo                 ModeloDocumentoFiscal
+  quantidadeAutorizada   Int                   @default(0)
+  quantidadeCancelamento Int                   @default(0)
+  quantidadeCce          Int                   @default(0)
+  quantidadeInutilizacao Int                   @default(0)
+  valorNotas             Decimal               @default(0.00) @db.Decimal(15, 2)
+  valorEventos           Decimal               @default(0.00) @db.Decimal(15, 2)
+  valorMinimo            Decimal               @default(69.90) @db.Decimal(15, 2)
+  valorTotal             Decimal               @default(69.90) @db.Decimal(15, 2)
+  fechadoEm              DateTime?
+  criadoEm               DateTime              @default(now())
+  atualizadoEm           DateTime              @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, anoMes, ambiente, modelo])
+  @@map("usos_mensais")
+}
+
+model Auditoria {
+  id         String        @id @default(cuid())
+  clientId   String?
+  chaveApiId String?
+  usuarioId  String?
+  tipo       TipoAuditoria
+  acao       String
+  recurso    String?
+  recursoId  String?
+  ip         String?
+  userAgent  String?
+  metadata   Json?
+  criadoEm   DateTime      @default(now())
+
+  client   Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  chaveApi ChaveApi? @relation(fields: [chaveApiId], references: [id], onDelete: SetNull)
+  usuario  User?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, tipo])
+  @@index([recurso, recursoId])
+  @@map("auditorias")
+}

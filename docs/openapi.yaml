@@ -1,0 +1,486 @@
+openapi: 3.1.0
+info:
+  title: API Fiscal NF-e/NFC-e
+  version: "1.0.0"
+  description: API publica para emissao assincrona de NF-e modelo 55 e NFC-e modelo 65.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local
+  - url: https://seu-dominio.com/api/v1
+    description: Producao
+security:
+  - bearerAuth: []
+  - apiKeyAuth: []
+tags:
+  - name: Empresas
+  - name: Certificados
+  - name: Emissao
+  - name: Documentos
+  - name: Eventos
+  - name: Webhooks
+  - name: Cobranca
+paths:
+  /empresas:
+    get:
+      tags: [Empresas]
+      summary: Lista empresas emitentes
+      responses:
+        "200":
+          description: Lista de empresas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListaEmpresasResposta"
+    post:
+      tags: [Empresas]
+      summary: Cria empresa emitente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmpresaEntrada"
+      responses:
+        "201":
+          description: Empresa criada
+        "400":
+          $ref: "#/components/responses/Erro"
+  /empresas/{id}/certificado:
+    post:
+      tags: [Certificados]
+      summary: Envia certificado A1 da empresa
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [certificate, password]
+              properties:
+                certificate:
+                  type: string
+                  format: binary
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Certificado salvo
+        "422":
+          $ref: "#/components/responses/Erro"
+  /nfe:
+    post:
+      tags: [Emissao]
+      summary: Recebe uma NF-e para processamento assincrono
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentoEntrada"
+      responses:
+        "202":
+          description: Documento recebido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentoAceitoResposta"
+  /nfce:
+    post:
+      tags: [Emissao]
+      summary: Recebe uma NFC-e para processamento assincrono
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentoEntrada"
+      responses:
+        "202":
+          description: Documento recebido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentoAceitoResposta"
+  /documentos:
+    get:
+      tags: [Documentos]
+      summary: Lista documentos fiscais
+      parameters:
+        - name: modelo
+          in: query
+          schema:
+            $ref: "#/components/schemas/ModeloDocumento"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/StatusDocumento"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Lista paginada
+  /documentos/{id}:
+    get:
+      tags: [Documentos]
+      summary: Consulta documento fiscal
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Documento fiscal
+        "404":
+          $ref: "#/components/responses/Erro"
+  /documentos/{id}/xml:
+    get:
+      tags: [Documentos]
+      summary: Baixa XML do documento
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: XML
+          content:
+            application/xml:
+              schema:
+                type: string
+        "409":
+          $ref: "#/components/responses/Erro"
+  /documentos/{id}/pdf:
+    get:
+      tags: [Documentos]
+      summary: Baixa DANFE em PDF
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "409":
+          $ref: "#/components/responses/Erro"
+  /documentos/{id}/cancelamento:
+    post:
+      tags: [Eventos]
+      summary: Solicita cancelamento
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [justificativa]
+              properties:
+                justificativa:
+                  type: string
+                  minLength: 15
+      responses:
+        "202":
+          description: Evento recebido
+  /documentos/{id}/carta-correcao:
+    post:
+      tags: [Eventos]
+      summary: Solicita carta de correcao para NF-e
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correcao]
+              properties:
+                correcao:
+                  type: string
+                  minLength: 15
+                  maxLength: 1000
+      responses:
+        "202":
+          description: Evento recebido
+  /documentos/inutilizacao:
+    post:
+      tags: [Eventos]
+      summary: Solicita inutilizacao de numeracao
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [empresaId, modelo, serie, numeroInicial, numeroFinal, justificativa]
+              properties:
+                empresaId:
+                  type: string
+                modelo:
+                  oneOf:
+                    - $ref: "#/components/schemas/ModeloDocumento"
+                    - type: string
+                      enum: ["55", "65"]
+                serie:
+                  type: integer
+                numeroInicial:
+                  type: integer
+                numeroFinal:
+                  type: integer
+                justificativa:
+                  type: string
+                  minLength: 15
+      responses:
+        "202":
+          description: Inutilizacao recebida
+  /webhooks/eventos:
+    get:
+      tags: [Webhooks]
+      summary: Lista eventos disponiveis
+      security: []
+      responses:
+        "200":
+          description: Eventos
+  /webhooks:
+    get:
+      tags: [Webhooks]
+      summary: Lista endpoints de webhook
+      responses:
+        "200":
+          description: Endpoints
+    post:
+      tags: [Webhooks]
+      summary: Cadastra endpoint de webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                eventos:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Endpoint criado
+  /cobranca/simular:
+    get:
+      tags: [Cobranca]
+      summary: Simula cobranca por quantidade de notas
+      security: []
+      parameters:
+        - name: notas
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Simulacao
+  /cobranca/uso:
+    get:
+      tags: [Cobranca]
+      summary: Consulta uso mensal do cliente
+      parameters:
+        - name: anoMes
+          in: query
+          schema:
+            type: string
+            example: "2026-05"
+        - name: modelo
+          in: query
+          schema:
+            $ref: "#/components/schemas/ModeloDocumento"
+      responses:
+        "200":
+          description: Uso mensal
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    IdempotencyKey:
+      name: idempotency-key
+      in: header
+      required: false
+      schema:
+        type: string
+  responses:
+    Erro:
+      description: Erro padronizado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Erro"
+  schemas:
+    ModeloDocumento:
+      type: string
+      enum: [NFE, NFCE]
+    AmbienteFiscal:
+      type: string
+      enum: [HOMOLOGACAO, PRODUCAO]
+    StatusDocumento:
+      type: string
+      enum:
+        - RECEBIDA
+        - VALIDANDO
+        - XML_GERADO
+        - ASSINADA
+        - ENFILEIRADA
+        - ENVIANDO_SEFAZ
+        - AUTORIZADA
+        - REJEITADA
+        - DENEGADA
+        - CANCELADA
+        - CONTINGENCIA
+        - INUTILIZADA
+        - ERRO_TECNICO
+    Erro:
+      type: object
+      required: [codigo, mensagem, requestId]
+      properties:
+        codigo:
+          type: string
+        mensagem:
+          type: string
+        requestId:
+          type: string
+        detalhes: {}
+    EmpresaEntrada:
+      type: object
+      required: [cnpj, nome, ie, logradouro, numero, bairro, municipio, uf, cep]
+      properties:
+        cnpj:
+          type: string
+        nome:
+          type: string
+        nomeFantasia:
+          type: string
+        ie:
+          type: string
+        crt:
+          type: string
+          default: "3"
+        logradouro:
+          type: string
+        numero:
+          type: string
+        bairro:
+          type: string
+        municipio:
+          type: string
+        uf:
+          type: string
+        cep:
+          type: string
+        csc:
+          type: string
+        idCsc:
+          type: string
+    ListaEmpresasResposta:
+      type: object
+      properties:
+        requestId:
+          type: string
+        empresas:
+          type: array
+          items:
+            type: object
+    DocumentoEntrada:
+      type: object
+      required: [empresaId, itens]
+      properties:
+        empresaId:
+          type: string
+        naturezaOperacao:
+          type: string
+        valorTotal:
+          type: number
+        destinatario:
+          type: object
+        consumidor:
+          type: object
+        pagamentos:
+          type: array
+          items:
+            type: object
+        itens:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/DocumentoItemEntrada"
+    DocumentoItemEntrada:
+      type: object
+      required: [descricao, quantidade, valorUnitario, valorTotal]
+      properties:
+        codigo:
+          type: string
+        descricao:
+          type: string
+        ncm:
+          type: string
+        cfop:
+          type: string
+        unidade:
+          type: string
+        quantidade:
+          type: number
+        valorUnitario:
+          type: number
+        valorTotal:
+          type: number
+        tributos:
+          type: object
+    DocumentoAceitoResposta:
+      type: object
+      properties:
+        requestId:
+          type: string
+        documentoId:
+          type: string
+        modelo:
+          $ref: "#/components/schemas/ModeloDocumento"
+        ambiente:
+          $ref: "#/components/schemas/AmbienteFiscal"
+        status:
+          $ref: "#/components/schemas/StatusDocumento"
+        idempotente:
+          type: boolean
+        links:
+          type: object
+

@@ -1,0 +1,104 @@
+{
+  "info": {
+    "name": "API Fiscal NF-e NFC-e v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "api_token", "value": "" },
+    { "key": "empresa_id", "value": "" },
+    { "key": "documento_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Empresas - Criar",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "authorization", "value": "Bearer {{api_token}}" },
+          { "key": "content-type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/api/v1/empresas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"00000000000191\",\n  \"nome\": \"Empresa Exemplo LTDA\",\n  \"ie\": \"123456789\",\n  \"logradouro\": \"Rua Exemplo\",\n  \"numero\": \"100\",\n  \"bairro\": \"Centro\",\n  \"municipio\": \"Sao Paulo\",\n  \"uf\": \"SP\",\n  \"cep\": \"01001000\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Empresas - Listar",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "authorization", "value": "Bearer {{api_token}}" }
+        ],
+        "url": "{{base_url}}/api/v1/empresas"
+      }
+    },
+    {
+      "name": "NF-e - Emitir",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "authorization", "value": "Bearer {{api_token}}" },
+          { "key": "content-type", "value": "application/json" },
+          { "key": "idempotency-key", "value": "pedido-123-nfe" }
+        ],
+        "url": "{{base_url}}/api/v1/nfe",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"empresaId\": \"{{empresa_id}}\",\n  \"naturezaOperacao\": \"Venda\",\n  \"valorTotal\": 100,\n  \"itens\": [\n    {\n      \"codigo\": \"PROD1\",\n      \"descricao\": \"Produto de teste\",\n      \"ncm\": \"00000000\",\n      \"cfop\": \"5102\",\n      \"unidade\": \"UN\",\n      \"quantidade\": 1,\n      \"valorUnitario\": 100,\n      \"valorTotal\": 100\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "NFC-e - Emitir",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "authorization", "value": "Bearer {{api_token}}" },
+          { "key": "content-type", "value": "application/json" },
+          { "key": "idempotency-key", "value": "venda-123-nfce" }
+        ],
+        "url": "{{base_url}}/api/v1/nfce",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"empresaId\": \"{{empresa_id}}\",\n  \"naturezaOperacao\": \"Venda ao consumidor\",\n  \"valorTotal\": 25.9,\n  \"pagamentos\": [{ \"tPag\": \"01\", \"vPag\": 25.9 }],\n  \"itens\": [\n    {\n      \"codigo\": \"ITEM1\",\n      \"descricao\": \"Produto NFC-e\",\n      \"ncm\": \"00000000\",\n      \"cfop\": \"5102\",\n      \"unidade\": \"UN\",\n      \"quantidade\": 1,\n      \"valorUnitario\": 25.9,\n      \"valorTotal\": 25.9\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Documentos - Consultar",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "authorization", "value": "Bearer {{api_token}}" }
+        ],
+        "url": "{{base_url}}/api/v1/documentos/{{documento_id}}"
+      }
+    },
+    {
+      "name": "Webhooks - Criar",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "authorization", "value": "Bearer {{api_token}}" },
+          { "key": "content-type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/api/v1/webhooks",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"url\": \"https://sistema-cliente.com/webhooks/api-fiscal\",\n  \"eventos\": [\"documento.recebido\", \"documento.rejeitado\", \"documento.cancelado\"]\n}"
+        }
+      }
+    },
+    {
+      "name": "Cobranca - Simular",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/cobranca/simular?notas=351"
+      }
+    }
+  ]
+}
+
