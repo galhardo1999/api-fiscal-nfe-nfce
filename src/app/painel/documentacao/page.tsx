@@ -1,4 +1,7 @@
-const guias = [
+import Link from 'next/link';
+import { paginasReferencia } from '@/componentes/documentacao/referencias-api';
+
+const guiasMarkdown = [
   ['Visao geral', '/docs/desenvolvedores/README.md'],
   ['Arquitetura da API', '/docs/desenvolvedores/visao-geral.md'],
   ['Autenticacao', '/docs/desenvolvedores/autenticacao.md'],
@@ -25,6 +28,9 @@ export default function PainelDocumentacaoPage() {
           <p>Guias para integrar sistemas externos com emissao de NF-e e NFC-e.</p>
         </div>
         <div className="toolbar">
+          <Link className="button" href="/docs">
+            Referencias visuais
+          </Link>
           <a className="button" href="/docs/openapi.yaml" download>
             OpenAPI
           </a>
@@ -95,7 +101,13 @@ idempotency-key: pedido-123-nfe`}</pre>
         </div>
         <div className="panel-body">
           <div className="docs-grid">
-            {guias.map(([titulo, caminho]) => (
+            {paginasReferencia.map((pagina) => (
+              <a className="doc-card" href={pagina.href} target="_blank" rel="noreferrer" key={pagina.slug}>
+                <strong>{pagina.titulo}</strong>
+                <code>{pagina.href}</code>
+              </a>
+            ))}
+            {guiasMarkdown.map(([titulo, caminho]) => (
               <a className="doc-card" href={caminho} target="_blank" rel="noreferrer" key={caminho}>
                 <strong>{titulo}</strong>
                 <code>{caminho}</code>

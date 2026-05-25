@@ -30,6 +30,6 @@ Esta documentacao orienta integradores que vao usar a API Fiscal para emitir NF-
 
 ## Recursos importaveis
 
+- Referencias visuais: `/docs`
 - OpenAPI: `docs/openapi.yaml`
 - Postman: `docs/postman_collection.json`
-
