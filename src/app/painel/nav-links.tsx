@@ -3,14 +3,25 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const links = [
+const linksComuns = [
   { href: '/painel', label: 'Dashboard' },
   { href: '/painel/chaves', label: 'Chaves de API' },
-  { href: '/painel/documentacao', label: 'Documentacao' },
+  { href: '/painel/planos', label: 'Planos e Preços' },
+  { href: '/docs/visao-geral', label: 'Documentacao' },
 ] as const;
 
-export function NavLinksPainel() {
+const linksAdmin = [
+  { href: '/painel/admin', label: 'Painel Geral' },
+] as const;
+
+interface NavLinksPainelProps {
+  isAdmin?: boolean;
+}
+
+export function NavLinksPainel({ isAdmin }: NavLinksPainelProps) {
   const pathname = usePathname();
+  
+  const links = isAdmin ? linksAdmin : linksComuns;
 
   return (
     <nav className="sidebar-nav">

@@ -13,6 +13,11 @@ export async function POST(request: NextRequest) {
     return responderErro(401, 'NAO_AUTORIZADO', 'API key invalida ou sem escopo documentos:emitir.', requestId);
   }
 
+  // Validar saldo pré-pago apenas em ambiente de Produção
+  if (contexto.ambiente === 'PRODUCAO' && ((contexto.client as any).saldoCreditos || 0) <= 0) {
+    return responderErro(402, 'SALDO_INSUFICIENTE', 'Saldo de creditos pre-pagos insuficiente para emissao em Producao.', requestId);
+  }
+
   let corpo: unknown;
   try {
     corpo = await request.json();

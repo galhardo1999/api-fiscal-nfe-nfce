@@ -12,7 +12,11 @@
     "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:criar-base": "tsx scripts/criar-base-comercial.ts",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "worker:emissao": "tsx scripts/worker-emissao.ts",
+    "worker:webhook": "tsx scripts/worker-webhook.ts",
+    "db:faturar": "tsx scripts/fechamento-faturamento.ts",
+    "simular:loop": "tsx scripts/simulador-emissao-continua.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",

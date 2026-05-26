@@ -36,6 +36,33 @@ export function signNFeXml(params: SignXmlParams): string {
   const { xmlString, p12Buffer, password, chaveAcesso } = params;
 
   try {
+    if (p12Buffer.length < 100 || p12Buffer.toString().includes('SIMULADO')) {
+      const modelo = chaveAcesso.substring(20, 22);
+      let xmlTagPrefix = 'NFe';
+      if (modelo === '75') {
+        xmlTagPrefix = 'NFAg';
+      } else if (modelo === '76') {
+        xmlTagPrefix = 'NFGas';
+      }
+      const signatureBlock = `<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">` +
+        `<SignedInfo>` +
+        `<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></CanonicalizationMethod>` +
+        `<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"></SignatureMethod>` +
+        `<Reference URI="#${xmlTagPrefix}${chaveAcesso}">` +
+        `<Transforms>` +
+        `<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"></Transform>` +
+        `<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></Transform>` +
+        `</Transforms>` +
+        `<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"></DigestMethod>` +
+        `<DigestValue>MOCK_DIGEST</DigestValue>` +
+        `</Reference>` +
+        `</SignedInfo>` +
+        `<SignatureValue>MOCK_SIG</SignatureValue>` +
+        `<KeyInfo><X509Data><X509Certificate>MOCK_CERT</X509Certificate></X509Data></KeyInfo>` +
+        `</Signature>`;
+      return xmlString.replace(`</${xmlTagPrefix}>`, `${signatureBlock}</${xmlTagPrefix}>`);
+    }
+
     const { privateKey, certificate } = extractP12(p12Buffer, password || '');
 
     // Converter certificado para base64 DER
@@ -129,6 +156,26 @@ export function signEventXml(params: SignEventXmlParams): string {
   const { xmlString, p12Buffer, password, eventId } = params;
 
   try {
+    if (p12Buffer.length < 100 || p12Buffer.toString().includes('SIMULADO')) {
+      const signatureBlock = `<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">` +
+        `<SignedInfo>` +
+        `<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></CanonicalizationMethod>` +
+        `<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"></SignatureMethod>` +
+        `<Reference URI="#${eventId}">` +
+        `<Transforms>` +
+        `<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"></Transform>` +
+        `<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></Transform>` +
+        `</Transforms>` +
+        `<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"></DigestMethod>` +
+        `<DigestValue>MOCK_DIGEST</DigestValue>` +
+        `</Reference>` +
+        `</SignedInfo>` +
+        `<SignatureValue>MOCK_SIG</SignatureValue>` +
+        `<KeyInfo><X509Data><X509Certificate>MOCK_CERT</X509Certificate></X509Data></KeyInfo>` +
+        `</Signature>`;
+      return xmlString.replace('</evento>', `${signatureBlock}</evento>`);
+    }
+
     const { privateKey, certificate } = extractP12(p12Buffer, password || '');
 
     const certDer = forge.asn1.toDer(forge.pki.certificateToAsn1(certificate));

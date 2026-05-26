@@ -62,6 +62,7 @@ model Client {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   planId            String?
+  saldoCreditos     Int                @default(0)
   createdBy         Admin              @relation("AdminCreatedClients", fields: [createdById], references: [id])
   plan              Planos?            @relation(fields: [planId], references: [id])
   users             User[]
@@ -71,8 +72,22 @@ model Client {
   entregasWebhook   EntregaWebhook[]
   usosMensais       UsoMensal[]
   auditorias        Auditoria[]
+  recargas          RecargaCredito[]
 
   @@map("clientes_sistema")
+}
+
+model RecargaCredito {
+  id         String   @id @default(cuid())
+  clientId   String
+  quantidade Int
+  valor      Decimal  @db.Decimal(10, 2)
+  criadoEm   DateTime @default(now())
+  expiraEm   DateTime
+  consumido  Boolean  @default(false)
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("recargas_creditos")
 }
 
 model Planos {

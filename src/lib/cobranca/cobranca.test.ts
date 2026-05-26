@@ -2,39 +2,30 @@ import { describe, expect, test } from 'bun:test';
 import { calcularCobrancaNotas } from './cobranca';
 
 describe('calcularCobrancaNotas', () => {
-  test('aplica minimo mensal abaixo do ponto de virada', () => {
-    expect(calcularCobrancaNotas(50)).toMatchObject({
-      precoUnitario: 0.9,
-      valorNotas: 45,
-      valorTotal: 69.9,
-      minimoAplicado: true,
-    });
-  });
-
-  test('cobra todas as notas pela faixa ate 100', () => {
+  test('calcula lote de 100 notas', () => {
     expect(calcularCobrancaNotas(100)).toMatchObject({
-      precoUnitario: 0.9,
+      precoUnitario: 0.90,
       valorNotas: 90,
       valorTotal: 90,
-      faixa: 'ATE_100',
+      faixa: 'LOTE_100',
     });
   });
 
-  test('cobra todas as notas pela faixa de 101 a 350', () => {
-    expect(calcularCobrancaNotas(101)).toMatchObject({
-      precoUnitario: 0.79,
-      valorNotas: 79.79,
-      valorTotal: 79.79,
-      faixa: 'ATE_350',
+  test('calcula lote de 500 notas', () => {
+    expect(calcularCobrancaNotas(500)).toMatchObject({
+      precoUnitario: 0.75,
+      valorNotas: 375,
+      valorTotal: 375,
+      faixa: 'LOTE_500',
     });
   });
 
-  test('cobra todas as notas pela faixa acima de 350', () => {
-    expect(calcularCobrancaNotas(351)).toMatchObject({
-      precoUnitario: 0.69,
-      valorNotas: 242.19,
-      valorTotal: 242.19,
-      faixa: 'ACIMA_350',
+  test('calcula lote de 2000 notas', () => {
+    expect(calcularCobrancaNotas(2000)).toMatchObject({
+      precoUnitario: 0.60,
+      valorNotas: 1200,
+      valorTotal: 1200,
+      faixa: 'LOTE_2000',
     });
   });
 });

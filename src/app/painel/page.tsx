@@ -105,6 +105,10 @@ export default async function PainelDashboardPage() {
     redirect('/login');
   }
 
+  if (session.user.isAdmin) {
+    redirect('/painel/admin');
+  }
+
   if (!session.user.isAdmin && !session.user.clientId) {
     return (
       <section className="panel">
@@ -165,6 +169,7 @@ export default async function PainelDashboardPage() {
           select: {
             companyName: true,
             status: true,
+            saldoCreditos: true,
             plan: {
               select: {
                 name: true,
@@ -341,9 +346,11 @@ export default async function PainelDashboardPage() {
           <small>{taxaAutorizacao}% de autorizacao sobre {documentosMes} documentos</small>
         </div>
         <div className="metric-card accent-success">
-          <span>Saldo atual da fatura</span>
-          <strong>{formatarMoeda(cobranca.valorTotal)}</strong>
-          <small>{cobranca.minimoAplicado ? 'Minimo mensal aplicado' : `${formatarMoeda(cobranca.precoUnitario)} por nota`}</small>
+          <span>Saldo de créditos</span>
+          <strong style={{ color: ((cliente as any)?.saldoCreditos || 0) > 0 ? '#10b981' : '#ef4444' }}>
+            {((cliente as any)?.saldoCreditos || 0)}
+          </strong>
+          <small>{((cliente as any)?.saldoCreditos || 0) > 0 ? 'Créditos ativos em ambiente real' : '⚠️ Sem saldo! Emissões em produção bloqueadas.'}</small>
         </div>
         <div className="metric-card accent-blue">
           <span>Valor fiscal autorizado</span>
@@ -361,35 +368,39 @@ export default async function PainelDashboardPage() {
         <div className="panel">
           <div className="panel-header">
             <div className="page-title compact">
-              <h2>Cobranca do mes</h2>
-              <p>Faixa unica aplicada sobre todas as notas autorizadas.</p>
+              <h2>Resumo de créditos</h2>
+              <p>Controle do saldo pré-pago para emissão fiscal em Produção.</p>
             </div>
           </div>
           <div className="panel-body">
             <dl className="detail-list">
               <div>
-                <dt>Notas cobradas</dt>
-                <dd>{cobranca.quantidadeNotas}</dd>
+                <dt>Saldo de créditos</dt>
+                <dd><strong>{((cliente as any)?.saldoCreditos || 0)} notas</strong></dd>
               </div>
               <div>
-                <dt>Valor por nota</dt>
-                <dd>{formatarMoeda(cobranca.precoUnitario)}</dd>
+                <dt>Notas autorizadas no mês</dt>
+                <dd>{notasEmitidasMes}</dd>
               </div>
               <div>
-                <dt>Subtotal por emissao</dt>
-                <dd>{formatarMoeda(cobranca.valorNotas)}</dd>
+                <dt>Modelo comercial</dt>
+                <dd>Pré-pago recarregável</dd>
               </div>
               <div>
-                <dt>Minimo mensal</dt>
-                <dd>{formatarMoeda(69.9)}</dd>
+                <dt>Validade dos créditos</dt>
+                <dd>12 meses após aquisição</dd>
               </div>
               <div>
-                <dt>Total previsto</dt>
-                <dd>{formatarMoeda(cobranca.valorTotal)}</dd>
+                <dt>Ambiente de homologação</dt>
+                <dd style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Grátis & Ilimitado</dd>
               </div>
               <div>
-                <dt>Faixa atual</dt>
-                <dd>{cobranca.faixa === 'ATE_100' ? 'Ate 100' : cobranca.faixa === 'ATE_350' ? '101 a 350' : 'Acima de 350'}</dd>
+                <dt>Ações</dt>
+                <dd>
+                  <Link href="/painel/planos" style={{ color: 'var(--primary)', textDecoration: 'underline', fontWeight: 'bold' }}>
+                    Recarregar saldo
+                  </Link>
+                </dd>
               </div>
             </dl>
           </div>
@@ -539,7 +550,7 @@ export default async function PainelDashboardPage() {
                     <span className={`badge ${classeStatus(documento.status)}`}>{rotulosStatus[documento.status]}</span>
                   </td>
                   <td>{formatarMoeda(Number(documento.valorTotal || 0))}</td>
-                  <td>{documento.status === StatusDocumentoFiscal.AUTORIZADA ? formatarMoeda(cobranca.precoUnitario) : '-'}</td>
+                  <td>{documento.status === StatusDocumentoFiscal.AUTORIZADA && documento.ambiente === AmbienteFiscalApi.PRODUCAO ? '1 crédito' : 'Grátis'}</td>
                   <td>{documento.motivoSefaz || '-'}</td>
                   <td>{formatarData(documento.criadoEm)}</td>
                 </tr>

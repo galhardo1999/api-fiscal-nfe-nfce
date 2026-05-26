@@ -1,57 +1,41 @@
 export const VALOR_MINIMO_MENSAL_CENTAVOS = 6990;
 
+export const LOTES_PRE_PAGOS = [
+  { quantidade: 100, valor: 90.00, precoUnitario: 0.90 },
+  { quantidade: 500, valor: 375.00, precoUnitario: 0.75 },
+  { quantidade: 2000, valor: 1200.00, precoUnitario: 0.60 },
+] as const;
+
 export interface ResultadoCobrancaNotas {
   quantidadeNotas: number;
-  precoUnitarioCentavos: number;
   precoUnitario: number;
-  valorNotasCentavos: number;
   valorNotas: number;
-  valorTotalCentavos: number;
   valorTotal: number;
-  minimoAplicado: boolean;
-  faixa: 'ATE_100' | 'ATE_350' | 'ACIMA_350';
+  faixa: 'LOTE_100' | 'LOTE_500' | 'LOTE_2000' | 'SOB_MEDIDA';
 }
 
-export function obterPrecoUnitarioCentavos(quantidadeNotas: number): number {
-  if (quantidadeNotas <= 100) {
-    return 90;
-  }
-
-  if (quantidadeNotas <= 350) {
-    return 79;
-  }
-
-  return 69;
+export function obterPrecoUnitario(quantidadeNotas: number): number {
+  if (quantidadeNotas <= 100) return 0.90;
+  if (quantidadeNotas <= 500) return 0.75;
+  return 0.60;
 }
 
-export function obterFaixaCobranca(quantidadeNotas: number): ResultadoCobrancaNotas['faixa'] {
-  if (quantidadeNotas <= 100) {
-    return 'ATE_100';
-  }
-
-  if (quantidadeNotas <= 350) {
-    return 'ATE_350';
-  }
-
-  return 'ACIMA_350';
+export function obterFaixaLote(quantidadeNotas: number): ResultadoCobrancaNotas['faixa'] {
+  if (quantidadeNotas <= 100) return 'LOTE_100';
+  if (quantidadeNotas <= 500) return 'LOTE_500';
+  return 'LOTE_2000';
 }
 
-export function calcularCobrancaNotas(quantidadeNotasEntrada: number): ResultadoCobrancaNotas {
-  const quantidadeNotas = Math.max(0, Math.trunc(quantidadeNotasEntrada));
-  const precoUnitarioCentavos = obterPrecoUnitarioCentavos(quantidadeNotas);
-  const valorNotasCentavos = quantidadeNotas * precoUnitarioCentavos;
-  const valorTotalCentavos = Math.max(VALOR_MINIMO_MENSAL_CENTAVOS, valorNotasCentavos);
-
+export function calcularCobrancaNotas(quantidadeNotas: number): ResultadoCobrancaNotas {
+  const precoUnitario = obterPrecoUnitario(quantidadeNotas);
+  const valorNotas = quantidadeNotas * precoUnitario;
+  
   return {
     quantidadeNotas,
-    precoUnitarioCentavos,
-    precoUnitario: precoUnitarioCentavos / 100,
-    valorNotasCentavos,
-    valorNotas: valorNotasCentavos / 100,
-    valorTotalCentavos,
-    valorTotal: valorTotalCentavos / 100,
-    minimoAplicado: valorTotalCentavos === VALOR_MINIMO_MENSAL_CENTAVOS && valorNotasCentavos < VALOR_MINIMO_MENSAL_CENTAVOS,
-    faixa: obterFaixaCobranca(quantidadeNotas),
+    precoUnitario,
+    valorNotas,
+    valorTotal: valorNotas,
+    faixa: obterFaixaLote(quantidadeNotas),
   };
 }
 

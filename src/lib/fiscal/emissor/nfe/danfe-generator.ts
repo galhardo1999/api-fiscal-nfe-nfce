@@ -121,7 +121,7 @@ export function generateDanfePdf(data: DanfeData): Buffer {
   const drawText = (text: string, x: number, y: number, options?: { align?: 'left' | 'center' | 'right', font?: string, size?: number, style?: 'normal' | 'bold' }) => {
     doc.setFont(options?.font || 'Helvetica', options?.style || 'normal');
     doc.setFontSize(options?.size || 7);
-    doc.text(text, x, y, { align: options?.align || 'left' });
+    doc.text(String(text ?? ''), x, y, { align: options?.align || 'left' });
   };
 
   const drawRectWithLabel = (x: number, y: number, w: number, h: number, label: string, value: string = '', options?: { alignValue?: 'left' | 'center' | 'right', valueStyle?: 'normal' | 'bold', valSize?: number }) => {
