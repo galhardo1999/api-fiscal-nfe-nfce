@@ -33,6 +33,11 @@ export async function POST(request: NextRequest, contextoRota: ContextoRota) {
     return responderErro(404, 'EMPRESA_NAO_ENCONTRADA', 'Empresa emitente nao encontrada para este cliente.', requestId);
   }
 
+  const contentLength = Number(request.headers.get('content-length'));
+  if (contentLength && contentLength > 2 * 1024 * 1024) {
+    return responderErro(413, 'CERTIFICADO_MUITO_GRANDE', 'Certificado deve ter no maximo 2 MB.', requestId);
+  }
+
   const formData = await request.formData();
   const arquivo = formData.get('certificate');
   const senha = formData.get('password');

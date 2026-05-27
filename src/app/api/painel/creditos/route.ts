@@ -29,6 +29,13 @@ async function obterClienteSessao() {
 }
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'A recarga simulada de creditos nao esta disponivel no ambiente de producao.' },
+      { status: 403 }
+    );
+  }
+
   const contexto = await obterClienteSessao();
   if (contexto.erro) {
     return contexto.erro;

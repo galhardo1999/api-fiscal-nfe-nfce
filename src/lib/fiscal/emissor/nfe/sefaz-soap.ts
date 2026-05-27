@@ -58,7 +58,7 @@ export function sendSefazSoapRequest(
         key: keyPem,
         cert: certPem,
         ca: sefazCaBundle,
-        rejectUnauthorized: process.env.SEFAZ_VERIFY_SSL === 'true',
+        rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : process.env.SEFAZ_VERIFY_SSL !== 'false',
       });
 
       const options = {

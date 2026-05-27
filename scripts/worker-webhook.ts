@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { calcularAssinaturaWebhook } from '../src/lib/api-publica/webhooks';
+import { isSafeUrl } from '../src/lib/seguranca/ssrf';
 
 const prisma = new PrismaClient();
 
@@ -35,6 +36,19 @@ async function enviarWebhook(entregaId: string) {
     where: { id: entregaId },
     data: { status: 'ENVIANDO' },
   });
+
+  const ssrfCheck = await isSafeUrl(endpoint.url);
+  if (!ssrfCheck.safe) {
+    console.error(`[Worker Webhook] Abortando entrega de webhook ${entregaId} devido a falha de seguranca SSRF: ${ssrfCheck.error}`);
+    await prisma.entregaWebhook.update({
+      where: { id: entregaId },
+      data: {
+        status: 'FALHOU',
+        ultimoErro: `Abortado por falha de seguranca (SSRF): ${ssrfCheck.error}`,
+      },
+    });
+    return;
+  }
 
   const payloadString = JSON.stringify(entrega.payload);
   const assinatura = calcularAssinaturaWebhook(payloadString, endpoint.segredo);

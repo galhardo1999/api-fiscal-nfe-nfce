@@ -6,7 +6,7 @@ import { join } from 'path';
  * Grava arquivos localmente na pasta public/storage e retorna URLs públicas.
  */
 export class StorageService {
-  private static baseDir = join(process.cwd(), 'public', 'storage');
+  private static baseDir = join(process.cwd(), 'storage');
 
   private static garantirDiretorio(subdir: string) {
     const dir = join(this.baseDir, subdir);

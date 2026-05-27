@@ -5,6 +5,11 @@ import { gerarChaveApi } from '../src/lib/api-publica/chaves-api';
 const prisma = new PrismaClient();
 
 async function inicializarSimulador() {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+  if (isProduction) {
+    throw new Error('O simulador de emissão contínua não pode ser executado em ambiente de produção.');
+  }
+
   console.log('================================================================');
   console.log('🤖 INICIALIZANDO SIMULADOR DE EMISSÃO CONTÍNUA (10 SEGUNDOS) 🤖');
   console.log('================================================================');

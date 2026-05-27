@@ -22,9 +22,21 @@ function lerPeriodoCobranca(valor: string): BillingPeriod {
 }
 
 async function principal() {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+
+  const rawSenhaAdmin = process.env.ADMIN_SENHA;
+  if (!rawSenhaAdmin && isProduction) {
+    throw new Error('A variavel de ambiente ADMIN_SENHA e obrigatoria em producao para criar a base comercial com seguranca.');
+  }
+
+  const rawSenhaUsuario = process.env.CLIENTE_USUARIO_SENHA;
+  if (!rawSenhaUsuario && isProduction) {
+    throw new Error('A variavel de ambiente CLIENTE_USUARIO_SENHA e obrigatoria em producao para criar a base comercial com seguranca.');
+  }
+
   const emailAdmin = lerTexto('ADMIN_EMAIL', 'admin@apifiscal.local').toLowerCase();
   const nomeAdmin = lerTexto('ADMIN_NOME', 'Administrador API Fiscal');
-  const senhaAdmin = lerTexto('ADMIN_SENHA', 'Admin@123456');
+  const senhaAdmin = rawSenhaAdmin || 'Admin@123456';
 
   const planoId = lerTexto('PLANO_ID', 'plano_api_fiscal_base');
   const planoNome = lerTexto('PLANO_NOME', 'API Fiscal Base');
@@ -40,7 +52,7 @@ async function principal() {
   const usuarioClienteEmail = lerTexto('CLIENTE_USUARIO_EMAIL', 'cliente@apifiscal.local').toLowerCase();
   const usuarioClienteNome = lerTexto('CLIENTE_USUARIO_NOME', 'Usuario Cliente API Fiscal');
   const usuarioClienteDocumento = lerDocumento('CLIENTE_USUARIO_DOCUMENTO', '00000000000');
-  const usuarioClienteSenha = lerTexto('CLIENTE_USUARIO_SENHA', '123');
+  const usuarioClienteSenha = rawSenhaUsuario || '123';
 
   const admin = await prisma.admin.upsert({
     where: { email: emailAdmin },

@@ -2,15 +2,24 @@ import { AdminRole, BillingPeriod, ClientStatus, PrismaClient } from '@prisma/cl
 import { hashPassword } from '../src/lib/password';
 
 const prisma = new PrismaClient();
-
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 const emailAdmin = process.env.SEED_ADMIN_EMAIL || 'admin@apifiscal.local';
-const senhaAdmin = process.env.SEED_ADMIN_PASSWORD || 'Admin@123456';
+const senhaAdmin = process.env.SEED_ADMIN_PASSWORD;
+if (!senhaAdmin && isProduction) {
+  throw new Error('A variavel de ambiente SEED_ADMIN_PASSWORD e obrigatoria em producao para evitar credenciais padrao.');
+}
 const emailUsuarioCliente = process.env.SEED_CLIENTE_EMAIL || 'cliente@apifiscal.local';
-const senhaUsuarioCliente = process.env.SEED_CLIENTE_PASSWORD || 'Cliente@123456';
+const senhaUsuarioCliente = process.env.SEED_CLIENTE_PASSWORD;
+if (!senhaUsuarioCliente && isProduction) {
+  throw new Error('A variavel de ambiente SEED_CLIENTE_PASSWORD e obrigatoria em producao para evitar credenciais padrao.');
+}
+
+const finalSenhaAdmin = senhaAdmin || 'Admin@123456';
+const finalSenhaUsuarioCliente = senhaUsuarioCliente || 'Cliente@123456';
 
 async function principal() {
-  const senhaAdminHash = await hashPassword(senhaAdmin);
-  const senhaUsuarioClienteHash = await hashPassword(senhaUsuarioCliente);
+  const senhaAdminHash = await hashPassword(finalSenhaAdmin);
+  const senhaUsuarioClienteHash = await hashPassword(finalSenhaUsuarioCliente);
 
   const admin = await prisma.admin.upsert({
     where: { email: emailAdmin },

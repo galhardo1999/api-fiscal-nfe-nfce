@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { autenticarApiPublica } from '@/lib/api-publica/chaves-api';
+import { isSafeUrl } from '@/lib/seguranca/ssrf';
 import { obterRequestId, responderErro } from '@/lib/api-publica/respostas';
 import { ehRegistro, lerTexto } from '@/lib/api-publica/validacao';
 import { prisma } from '@/lib/prisma';
@@ -72,16 +73,12 @@ export async function POST(request: NextRequest) {
     return responderErro(400, 'URL_OBRIGATORIA', 'url e obrigatoria.', requestId);
   }
 
-  let urlValidada: URL;
-  try {
-    urlValidada = new URL(url);
-  } catch {
-    return responderErro(400, 'URL_INVALIDA', 'url deve ser absoluta e valida.', requestId);
+  const ssrfValidacao = await isSafeUrl(url);
+  if (!ssrfValidacao.safe) {
+    return responderErro(400, 'URL_INVALIDA', ssrfValidacao.error || 'A URL informada nao e segura.', requestId);
   }
 
-  if (!['https:', 'http:'].includes(urlValidada.protocol)) {
-    return responderErro(400, 'URL_INVALIDA', 'url deve usar http ou https.', requestId);
-  }
+  const urlValidada = new URL(url);
 
   const segredo = randomBytes(32).toString('base64url');
   const endpoint = await prisma.endpointWebhook.upsert({
